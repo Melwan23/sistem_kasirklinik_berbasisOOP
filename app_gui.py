@@ -4,7 +4,7 @@ import webbrowser
 import customtkinter as ctk
 
 from demo_program import PasienUmum, PasienBPJS, PasienAsuransi
-from db_klinik import verifikasi_pasien, simpan_transaksi
+from db_klinik import verifikasi_pasien, simpan_transaksi, cari_pasien_by_id
 
 def buat_nota_html(pasien):
     subtotal = pasien.get_biaya_tindakan() + pasien.get_biaya_obat()
@@ -312,52 +312,167 @@ def buat_nota_html(pasien):
     
     webbrowser.open("file://" + os.path.realpath(filename))
 
-
-ctk.set_appearance_mode("Dark")
+ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 class AppKlinik(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        self.FONT_MAIN = "Arial"
+
         self.title("Sistem Tagihan Klinik (GUI Mode)")
-        self.geometry("520x680")
+        self.geometry("490x740")
         self.resizable(False, False)
+        
+        self.configure(fg_color="#f8fafc")
 
-        self.lbl_title = ctk.CTkLabel(self, text="Sistem Kasir & Tagihan Klinik", font=ctk.CTkFont(size=20, weight="bold"))
-        self.lbl_title.pack(pady=(20, 10))
+        self.frame_header = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_header.pack(padx=24, pady=(20, 10), fill="x")
 
-        self.frame = ctk.CTkFrame(self, corner_radius=10)
-        self.frame.pack(padx=20, pady=10, fill="both", expand=True)
+        self.lbl_logo = ctk.CTkLabel(
+            self.frame_header,
+            text="🩺",
+            font=ctk.CTkFont(size=22),
+            width=46,
+            height=46,
+            fg_color="#f0fdfa",
+            text_color="#0d9488",
+            corner_radius=14
+        )
+        self.lbl_logo.pack(side="left", padx=(0, 12))
 
-        self.entry_id = self._buat_input("ID Pasien:", "Contoh: P-001")
+        self.frame_header_text = ctk.CTkFrame(self.frame_header, fg_color="transparent")
+        self.frame_header_text.pack(side="left", fill="both")
+
+        self.lbl_clinic_name = ctk.CTkLabel(
+            self.frame_header_text,
+            text="Klinik Kelompok 7",
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=18, weight="bold"),
+            text_color="#0f172a"
+        )
+        self.lbl_clinic_name.pack(anchor="w")
+
+        self.lbl_clinic_addr = ctk.CTkLabel(
+            self.frame_header_text,
+            text="Jl. Sipelem, Kampus UBSI Tegal",
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12),
+            text_color="#64748b"
+        )
+        self.lbl_clinic_addr.pack(anchor="w")
+
+        self.frame = ctk.CTkFrame(
+            self,
+            corner_radius=20,
+            fg_color="#ffffff",
+            border_width=1,
+            border_color="#e2e8f0"
+        )
+        self.frame.pack(padx=24, pady=(0, 20), fill="both", expand=True)
+
+        self.frame_banner = ctk.CTkFrame(
+            self.frame,
+            corner_radius=12,
+            fg_color="#f0fdfa",
+            border_width=1,
+            border_color="#ccfbf1"
+        )
+        self.frame_banner.pack(padx=20, pady=(16, 12), fill="x")
+
+        self.lbl_banner_tag = ctk.CTkLabel(
+            self.frame_banner,
+            text="TRANSAKSI KASIR",
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=10, weight="bold"),
+            text_color="#0d9488"
+        )
+        self.lbl_banner_tag.pack(anchor="w", padx=14, pady=(8, 1))
+
+        self.lbl_banner_title = ctk.CTkLabel(
+            self.frame_banner,
+            text="Input Data Tagihan & Pembayaran",
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=14, weight="bold"),
+            text_color="#0f172a"
+        )
+        self.lbl_banner_title.pack(anchor="w", padx=14, pady=(0, 8))
+
+        self.lbl_id = ctk.CTkLabel(self.frame, text="ID Pasien:", font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"), text_color="#1e293b")
+        self.lbl_id.pack(anchor="w", padx=20, pady=(4, 2))
+
+        self.frame_id = ctk.CTkFrame(self.frame, fg_color="transparent")
+        self.frame_id.pack(padx=20, pady=(0, 6), fill="x")
+
+        self.entry_id = ctk.CTkEntry(
+            self.frame_id, 
+            placeholder_text="Contoh: P-000",
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12),
+            fg_color="#f8fafc",
+            border_color="#cbd5e1",
+            text_color="#1e293b",
+            placeholder_text_color="#94a3b8",
+            corner_radius=10
+        )
+        self.entry_id.pack(side="left", expand=True, fill="x", padx=(0, 6))
+
+        self.btn_search = ctk.CTkButton(
+            self.frame_id,
+            text="🔍 Cari",
+            width=75,
+            command=self.cari_pasien,
+            fg_color="#0d9488",
+            hover_color="#0f766e",
+            text_color="#ffffff",
+            corner_radius=10,
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold")
+        )
+        self.btn_search.pack(side="right")
+
         self.entry_nama = self._buat_input("Nama Pasien:", "Masukkan nama pasien")
         self.entry_tindakan = self._buat_input("Biaya Tindakan Medis (Rp):", "0")
         self.entry_obat = self._buat_input("Biaya Obat-obatan (Rp):", "0")
 
-        self.lbl_jenis = ctk.CTkLabel(self.frame, text="Jenis Kepesertaan Pasien:", font=ctk.CTkFont(weight="bold"))
-        self.lbl_jenis.pack(anchor="w", padx=20, pady=(5, 2))
+        self.lbl_jenis = ctk.CTkLabel(self.frame, text="Jenis Kepesertaan Pasien:", font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"), text_color="#1e293b")
+        self.lbl_jenis.pack(anchor="w", padx=20, pady=(4, 2))
         
         self.combo_jenis = ctk.CTkOptionMenu(
             self.frame, 
             values=["Pasien Umum", "Pasien BPJS", "Pasien Asuransi"],
-            command=self._on_jenis_change
+            command=self._on_jenis_change,
+            fg_color="#f0fdfa",
+            button_color="#0d9488",
+            button_hover_color="#0f766e",
+            text_color="#0f766e",
+            dropdown_fg_color="#ffffff",
+            dropdown_text_color="#1e293b",
+            corner_radius=10,
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold")
         )
-        self.combo_jenis.pack(padx=20, pady=(0, 10), fill="x")
+        self.combo_jenis.pack(padx=20, pady=(0, 8), fill="x")
 
         self.frame_extra = ctk.CTkFrame(self.frame, fg_color="transparent")
-        self.lbl_extra = ctk.CTkLabel(self.frame_extra, text="", font=ctk.CTkFont(weight="bold"))
-        self.entry_extra = ctk.CTkEntry(self.frame_extra)
+        self.lbl_extra = ctk.CTkLabel(self.frame_extra, text="", font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"), text_color="#1e293b")
+        self.entry_extra = ctk.CTkEntry(
+            self.frame_extra,
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12),
+            fg_color="#f8fafc",
+            border_color="#cbd5e1",
+            text_color="#1e293b",
+            placeholder_text_color="#94a3b8",
+            corner_radius=10
+        )
 
         self.frame_btn = ctk.CTkFrame(self.frame, fg_color="transparent")
-        self.frame_btn.pack(padx=20, pady=(15, 10), fill="x")
+        self.frame_btn.pack(padx=20, pady=(14, 8), fill="x")
 
         self.btn_hitung = ctk.CTkButton(
             self.frame_btn, 
             text="Hitung & Cetak Nota HTML", 
             command=self.proses_transaksi, 
-            fg_color="#27ae60", 
-            hover_color="#219150"
+            fg_color="#0d9488", 
+            hover_color="#0f766e",
+            text_color="#ffffff",
+            corner_radius=10,
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"),
+            height=40
         )
         self.btn_hitung.pack(side="left", expand=True, fill="x", padx=(0, 5))
 
@@ -365,39 +480,90 @@ class AppKlinik(ctk.CTk):
             self.frame_btn, 
             text="Reset Form", 
             command=self.reset_form, 
-            fg_color="#e74c3c", 
-            hover_color="#c0392b"
+            fg_color="#ffffff", 
+            hover_color="#fff1f2",
+            text_color="#f43f5e",
+            border_width=1,
+            border_color="#fecdd3",
+            corner_radius=10,
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"),
+            height=40
         )
         self.btn_reset.pack(side="right", expand=True, fill="x", padx=(5, 0))
 
-        self.lbl_hasil = ctk.CTkLabel(self.frame, text="", font=ctk.CTkFont(size=14, weight="bold"), text_color="#2ecc71")
-        self.lbl_hasil.pack(pady=10)
+        self.lbl_hasil = ctk.CTkLabel(self.frame, text="", font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"), text_color="#0d9488")
+        self.lbl_hasil.pack(pady=6)
 
         self._on_jenis_change("Pasien Umum")
 
     def _buat_input(self, label_text, placeholder):
-        lbl = ctk.CTkLabel(self.frame, text=label_text, font=ctk.CTkFont(weight="bold"))
-        lbl.pack(anchor="w", padx=20, pady=(5, 2))
-        entry = ctk.CTkEntry(self.frame, placeholder_text=placeholder)
-        entry.pack(padx=20, pady=(0, 5), fill="x")
+        lbl = ctk.CTkLabel(
+            self.frame, 
+            text=label_text, 
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12, weight="bold"), 
+            text_color="#1e293b"
+        )
+        lbl.pack(anchor="w", padx=20, pady=(4, 2))
+        
+        entry = ctk.CTkEntry(
+            self.frame, 
+            placeholder_text=placeholder,
+            font=ctk.CTkFont(family=self.FONT_MAIN, size=12),
+            fg_color="#f8fafc",
+            border_color="#cbd5e1",
+            text_color="#1e293b",
+            placeholder_text_color="#94a3b8",
+            corner_radius=10
+        )
+        entry.pack(padx=20, pady=(0, 6), fill="x")
         return entry
+
+    def cari_pasien(self):
+        id_p = self.entry_id.get().strip()
+        if not id_p:
+            self.lbl_hasil.configure(text="Masukkan ID Pasien terlebih dahulu!", text_color="#f43f5e")
+            return
+
+        data = cari_pasien_by_id(id_p)
+        if data:
+            self.entry_nama.delete(0, "end")
+            self.entry_nama.insert(0, data.get("nama_pasien", ""))
+
+            jenis = data.get("jenis_pasien", "Pasien Umum")
+            self.combo_jenis.set(jenis)
+            self._on_jenis_change(jenis)
+
+            self.entry_extra.delete(0, "end")
+            if jenis == "Pasien BPJS" and data.get("no_bpjs"):
+                self.entry_extra.insert(0, data["no_bpjs"])
+            elif jenis == "Pasien Asuransi" and data.get("no_polis"):
+                self.entry_extra.insert(0, data["no_polis"])
+
+            self.lbl_hasil.configure(
+                text=f"Data Pasien '{data['nama_pasien']}' ditemukan!",
+                text_color="#0d9488"
+            )
+        else:
+            self.lbl_hasil.configure(
+                text="Pasien belum terdaftar. Silakan isi manual data pasien baru.",
+                text_color="#e67e22"
+            )
 
     def _on_jenis_change(self, choice):
         self.lbl_extra.pack_forget()
         self.entry_extra.pack_forget()
-        self.entry_extra.delete(0, "end")
 
         if choice == "Pasien BPJS":
-            self.frame_extra.pack(before=self.frame_btn, padx=20, pady=5, fill="x")
+            self.frame_extra.pack(before=self.frame_btn, padx=20, pady=4, fill="x")
             self.lbl_extra.configure(text="Nomor Kartu BPJS:")
             self.entry_extra.configure(placeholder_text="Contoh: 000112233")
-            self.lbl_extra.pack(anchor="w", pady=(5, 2))
+            self.lbl_extra.pack(anchor="w", pady=(4, 2))
             self.entry_extra.pack(fill="x")
         elif choice == "Pasien Asuransi":
-            self.frame_extra.pack(before=self.frame_btn, padx=20, pady=5, fill="x")
-            self.lbl_extra.configure(text="No. Polis & Diskon (%):")
-            self.entry_extra.configure(placeholder_text="Format: POL-101,20 (atau 221100)")
-            self.lbl_extra.pack(anchor="w", pady=(5, 2))
+            self.frame_extra.pack(before=self.frame_btn, padx=20, pady=4, fill="x")
+            self.lbl_extra.configure(text="No. Polis:")
+            self.entry_extra.configure(placeholder_text="Contoh: 00112233")
+            self.lbl_extra.pack(anchor="w", pady=(4, 2))
             self.entry_extra.pack(fill="x")
         else:
             self.frame_extra.pack_forget()
@@ -421,9 +587,8 @@ class AppKlinik(ctk.CTk):
             obat = float(self.entry_obat.get().strip() or 0)
             jenis = self.combo_jenis.get()
 
-            # 1. Parsing Nomor Kartu & Diskon
             no_kartu = None
-            diskon_pct = 20.0  # Default diskon 20%
+            diskon_pct = 20.0
             raw_extra = self.entry_extra.get().strip()
 
             if jenis == "Pasien BPJS":
@@ -439,17 +604,15 @@ class AppKlinik(ctk.CTk):
                 else:
                     no_kartu = raw_extra
 
-            # 2. Verifikasi ke Database MySQL
             if jenis in ["Pasien BPJS", "Pasien Asuransi"]:
                 is_valid = verifikasi_pasien(id_p, jenis, no_kartu)
                 if not is_valid:
                     self.lbl_hasil.configure(
                         text="Gagal Verifikasi: Data kartu/polis tidak terdaftar!",
-                        text_color="#e74c3c"
+                        text_color="#f43f5e"
                     )
                     return
 
-            # 3. Pembuatan Objek PBO
             obj_pasien = None
             if jenis == "Pasien Umum":
                 obj_pasien = PasienUmum(id_p, nama, tindakan, obat)
@@ -460,18 +623,16 @@ class AppKlinik(ctk.CTk):
 
             total = obj_pasien.hitung_tagihan()
 
-            # 4. Simpan Transaksi ke Database
             simpan_transaksi(id_p, tindakan, obat, total, nama_pasien=nama, jenis_pasien=jenis)
 
-            # 5. Cetak Hasil & Nota HTML
             self.lbl_hasil.configure(
                 text=f"Terverifikasi & Tersimpan!\nTotal Tagihan: Rp {total:,.0f}",
-                text_color="#2ecc71"
+                text_color="#0d9488"
             )
             buat_nota_html(obj_pasien)
 
         except ValueError:
-            self.lbl_hasil.configure(text="Error: Format input angka tidak valid!", text_color="#e74c3c")
+            self.lbl_hasil.configure(text="Error: Format input angka tidak valid!", text_color="#f43f5e")
 
 if __name__ == "__main__":
     app = AppKlinik()

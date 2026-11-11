@@ -8,6 +8,20 @@ def get_db_connector():
         database='db_klinik'
     )
 
+def cari_pasien_by_id(id_pasien):
+    try:
+        conn = get_db_connector()
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT * FROM pasien WHERE id_pasien = %s"
+        cursor.execute(query, (id_pasien,))
+        data = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return data
+    except Exception as err:
+        print(f"Error Cari Pasien: {err}")
+        return None
+
 def verifikasi_pasien(id_pasien, jenis_pasien, no_kartu=None):
     try:
         conn = get_db_connector()
